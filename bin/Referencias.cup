@@ -1,0 +1,166 @@
+
+/* ----------------------Seccion de declaraciones package e imports--------------------*/
+
+import java.util.ArrayList;
+import java.util.List;
+import java_cup.runtime.*;
+import java.util.Iterator;
+
+
+/* ----------------------Seccion componentes de codigo de usuario --------------------*/
+
+parser code {:
+
+public void report_error(String message, Object info) {
+    System.err.println (message);
+}
+
+public void syntax_error(Symbol s){
+    report_error("Error de sintaxis en linea "+(s.left+1)+", caracter "+(s.right+1),null);
+}
+
+   
+:};
+
+action code{:
+
+    public class Editorial {
+        private String nombre;
+        private int numLibros;
+
+        private Editorial (String nombre,int num){
+            this.nombre=nombre;
+            numLibros=num;
+        } 
+
+        private  Editorial (String nombre){
+            this(nombre,0);
+        } 
+
+        private int getNumLibros() {
+            return numLibros;
+        }
+
+        private void setNumLibros(int num){
+            numLibros=num;
+        }
+
+        private String getNombre() {
+            return nombre;
+        }
+    }
+
+    List<String> listaAutores = new ArrayList();
+    List<Editorial> listaEditoriales = new ArrayList();
+
+    public void addAutor(String nombre){
+    	assert nombre != null;
+        if(!listaAutores.contains(nombre)){
+            listaAutores.add(nombre);            
+        }
+        
+        else {            
+            parser.report_error(nombre+" ya existe en la lista de autores.",null);
+        }        
+    }
+
+    public void addEditorial(String nombre){
+
+        Editorial editorial = new Editorial(nombre);
+
+        if(!existeEditorial(nombre)){
+            listaEditoriales.add(editorial);                        
+        }
+        
+        else {            
+            parser.report_error(nombre+" ya existe en la lista de editoriales.",null);
+        }        
+    }
+
+    public boolean existeEditorial(String nombre){
+        Iterator<Editorial> iterador = listaEditoriales.iterator();
+        while(iterador.hasNext()){
+            Editorial editorial = iterador.next();
+            if (editorial.getNombre().equals(nombre)){
+                return true;
+            }
+        }
+        return false;
+    }
+
+     public boolean existenAutores(String autores){
+        
+        String listaAutoresLibro[] = autores.split(";");
+        
+        for (int i=0; i<listaAutoresLibro.length-1;i++){            
+            if(!listaAutores.contains(listaAutoresLibro[i].trim())){
+                return false;
+            }
+        }
+        return true;        
+    }
+
+    public void sumaLibro(String nomEditorial, String autores){
+        boolean modificado = false;
+        if(existeEditorial(nomEditorial)){
+            if(existenAutores(autores)){
+                Iterator<Editorial> iterador = listaEditoriales.iterator();
+                while(iterador.hasNext() && !modificado){
+                    Editorial editorial = iterador.next();
+                    if (editorial.getNombre().equals(nomEditorial)){
+                        editorial.setNumLibros(editorial.getNumLibros()+1);
+                        modificado=true;
+                    }
+                }            
+            }
+            else {                
+                parser.report_error("Libro contiene algun autor que no existe.",null);
+            }
+        }
+
+        else{            
+            parser.report_error("Libro contiene editorial "+nomEditorial+" y no existe.",null);
+        }            
+    }
+
+    public void mostrarLibrosEditoriales(){
+        Iterator<Editorial> iterador = listaEditoriales.iterator();
+        while(iterador.hasNext()){
+            Editorial editorial = iterador.next();
+            System.out.println("Editorial: "+editorial.getNombre()+
+                    " con "+editorial.getNumLibros()+" libros.");
+        }
+    }
+:}
+
+/* ------------Declaracion de la lista de simbolos de la gramatica-----------*/
+
+terminal Integer ANIO;
+terminal String NOMBRE,NAUTOR;
+terminal LLAVEIZQ, LLAVEDER, COMA,PYC, AUTORES,EDITORIALES,LIBROS, LIBRO;
+
+non terminal S, expr_autores, expr_editoriales,expr_libros, expr_libro;
+non terminal String expr_autores2;
+
+
+/* --------------Declaracion de la gramatica -----------*/
+
+S ::=AUTORES LLAVEIZQ expr_autores LLAVEDER EDITORIALES LLAVEIZQ  
+    expr_editoriales LLAVEDER  LIBROS LLAVEIZQ expr_libros LLAVEDER {: mostrarLibrosEditoriales(); :} 
+    | error:e {: parser.report_error("Error en sintaxis de la estructura del fichero.",e);:};
+
+expr_autores::= NAUTOR:nomAutor COMA expr_autores {: addAutor(nomAutor); :} 
+                | NAUTOR:nomAutor {: addAutor(nomAutor); :} | error:e {: parser.report_error("Error en sintaxis en bloque de autores.",e);:};
+
+expr_autores2::= NAUTOR:nombre COMA expr_autores2:autores {: RESULT=nombre+"; "+autores; :}
+                | NAUTOR:nombre {: RESULT = nombre + "; "; :}
+                | error:e {: parser.report_error("Error en sintaxis en bloque de autores.",e);:};
+
+
+expr_editoriales::= NOMBRE:nomEditorial {: addEditorial(nomEditorial); :} COMA expr_editoriales 
+                    | NOMBRE:nomEditorial {: addEditorial(nomEditorial); :}
+                    | error:e {: parser.report_error("Error en sintaxis de editoriales.",e);:};
+
+expr_libros::= expr_libro expr_libros | expr_libro;
+expr_libro::= LIBRO  LLAVEIZQ NOMBRE PYC expr_autores2:autores PYC NOMBRE:editorial {: sumaLibro(editorial,autores);:} PYC ANIO PYC LLAVEDER
+              | error:e {: parser.report_error("Error en sintaxis de libro.",e);:};              

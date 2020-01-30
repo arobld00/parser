@@ -1,0 +1,16 @@
+Autores {D. Kelley-Ilitri, J.E. Hopcroft, R. Motwani, J.D. Ullman}
+Editoriales { Prentice Hall, Addison Wesley }
+Libros {
+    Libro {
+        Teoria de Automatas y Lenguajes Formales;
+        D. Kelley-Ilitri;
+        Prentice Hall;
+        1998;
+    }
+    Libro {
+        Introduccion a la Teoria de Automatas;
+        J.E. Hopcroft, R. Motwani, J.D. Ullman;
+        Addn Wesley;
+        2008;
+    }
+}
